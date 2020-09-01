@@ -1,0 +1,75 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h> 
+#define ADDRESS "192.168.4.45"
+#define PORT 5000
+
+#pragma pack(push,1)
+
+typedef struct 
+{
+  int seq;
+  char timestamp[64];
+  char system_name[16];
+  char op_name[16];
+  char parameter_name[32][16];
+  char Argument_Ch1[32][16];
+  char Argument_Ch2[32][16];
+ } cmd;
+
+#pragma pack(pop)
+
+
+int main(int argc, char *argv[])
+{
+    int sockfd, portno, n;
+    struct sockaddr_in serv_addr;
+    struct hostent *server;
+    
+    cmd *c1;
+    c1 = malloc(sizeof(cmd));
+    char buffer[100];   
+  /*if (argc < 3) {
+       fprintf(stderr,"usage %s hostname port\n", argv[0]);
+       exit(0);
+    } */
+   // portno = atoi(argv[2]);
+
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) 
+        fprintf(stderr,"ERROR opening socket\n");
+    server = gethostbyname(ADDRESS);
+    if (server == NULL) {
+        fprintf(stderr,"ERROR, no such host\n");
+        exit(0);
+    }
+    bzero((char *) &serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    bcopy((char *)server->h_addr, 
+         (char *)&serv_addr.sin_addr.s_addr,
+         server->h_length);
+    serv_addr.sin_port = htons(PORT);
+    if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
+          {
+            fprintf(stderr,"ERROR connecting socket\n"); 
+          }
+
+        n = read(sockfd,c1,sizeof(cmd));
+        printf(" Size of Struct is ######## %d\n",sizeof(cmd));
+       if (n < 0) 
+         fprintf(stderr,"ERROR reading socket\n"); 
+      
+          printf("Number of bytes read on socket %d\n",n);
+           printf("we read on the socket %d %s %s %s %s %s %s\n",c1->seq,c1->timestamp,c1->system_name,c1->op_name,c1->parameter_name,c1->Argument_Ch1,c1->Argument_Ch2);
+ 
+      strcpy(buffer,"I got the structure");
+      write(sockfd,buffer,100);
+      fprintf(stderr,"WRITE %s\n",buffer);
+    close(sockfd);
+    return 0;
+}
